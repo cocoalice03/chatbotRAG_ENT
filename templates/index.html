@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}RAG Chatbot{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-robot me-2"></i>
+                    RAG Chatbot
+                </div>
+                <div>
+                    <button id="clearChat" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-broom me-1"></i> Clear Chat
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="chatContent" class="chat-content">
+            <div class="message message-bot">
+                <p>👋 Hello! I'm a RAG (Retrieval Augmented Generation) chatbot. Ask me questions about the documents stored in my knowledge base!</p>
+            </div>
+            
+            <div class="loading-indicator" id="loadingIndicator">
+                <div class="loader"></div> Thinking...
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <form id="chatForm" class="d-flex align-items-center">
+                <input type="text" id="questionInput" class="form-control form-control-lg" 
+                       placeholder="Ask a question..." autocomplete="off" required>
+                <button type="submit" class="btn btn-primary ms-2">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatForm = document.getElementById('chatForm');
+    const questionInput = document.getElementById('questionInput');
+    const chatContent = document.getElementById('chatContent');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const clearChatButton = document.getElementById('clearChat');
+    
+    // Handle form submission
+    chatForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const question = questionInput.value.trim();
+        if (!question) return;
+        
+        // Add user message to chat
+        addMessage(question, 'user');
+        
+        // Clear input
+        questionInput.value = '';
+        
+        // Show loading indicator
+        loadingIndicator.style.display = 'block';
+        chatContent.scrollTop = chatContent.scrollHeight;
+        
+        try {
+            // Send request to server
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question }),
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Add bot response to chat
+            addMessage(data.answer, 'bot', data.retrieved_context);
+            
+        } catch (error) {
+            console.error('Error:', error);
+            addMessage(`Sorry, an error occurred: ${error.message}`, 'bot');
+        } finally {
+            // Hide loading indicator
+            loadingIndicator.style.display = 'none';
+        }
+    });
+    
+    // Clear chat history
+    clearChatButton.addEventListener('click', function() {
+        // Keep only the initial greeting message
+        chatContent.innerHTML = `
+            <div class="message message-bot">
+                <p>👋 Hello! I'm a RAG (Retrieval Augmented Generation) chatbot. Ask me questions about the documents stored in my knowledge base!</p>
+            </div>
+            
+            <div class="loading-indicator" id="loadingIndicator">
+                <div class="loader"></div> Thinking...
+            </div>
+        `;
+        
+        // Update the loading indicator reference
+        loadingIndicator = document.getElementById('loadingIndicator');
+    });
+    
+    // Function to add a message to the chat
+    function addMessage(text, sender, context = null) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message', `message-${sender}`);
+        
+        const messageText = document.createElement('p');
+        messageText.textContent = text;
+        messageDiv.appendChild(messageText);
+        
+        // Add context if available (for bot messages)
+        if (sender === 'bot' && context && context.length > 0) {
+            const contextToggle = document.createElement('div');
+            contextToggle.classList.add('context-toggle');
+            contextToggle.textContent = 'Show sources';
+            messageDiv.appendChild(contextToggle);
+            
+            const contextDiv = document.createElement('div');
+            contextDiv.classList.add('message-context');
+            contextDiv.style.display = 'none';
+            
+            // Add each context chunk
+            context.forEach((chunk, index) => {
+                const chunkText = document.createElement('p');
+                chunkText.textContent = `Source ${index + 1}: ${chunk.substring(0, 150)}...`;
+                contextDiv.appendChild(chunkText);
+            });
+            
+            messageDiv.appendChild(contextDiv);
+            
+            // Toggle context visibility
+            contextToggle.addEventListener('click', function() {
+                if (contextDiv.style.display === 'none') {
+                    contextDiv.style.display = 'block';
+                    contextToggle.textContent = 'Hide sources';
+                } else {
+                    contextDiv.style.display = 'none';
+                    contextToggle.textContent = 'Show sources';
+                }
+            });
+        }
+        
+        // Insert message before the loading indicator
+        chatContent.insertBefore(messageDiv, loadingIndicator);
+        
+        // Scroll to bottom
+        chatContent.scrollTop = chatContent.scrollHeight;
+    }
+});
+</script>
+{% endblock %}
