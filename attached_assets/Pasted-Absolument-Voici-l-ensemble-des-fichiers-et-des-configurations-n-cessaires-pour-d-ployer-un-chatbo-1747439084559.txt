@@ -1,0 +1,653 @@
+Absolument ! Voici l'ensemble des fichiers et des configurations nécessaires pour déployer un chatbot RAG utilisant Pinecone et les API OpenAI (sans LangChain) sur Replit. Cette solution est basée sur les informations des documents de référence, en particulier en adaptant les concepts pour éviter LangChain comme demandé [2, 13].
+
+## Structure du Projet
+
+Voici une structure de projet suggérée :
+
+```
+RAG_Pinecone_OpenAI_Replit/
+├── .env.example
+├── README.md
+├── requirements.txt
+├── main.py
+├── routes.py
+├── ingest_data.py
+├── data/
+│   └── knowledge_base.txt
+├── src/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── text_utils.py
+│   ├── pinecone_manager.py
+│   └── openai_handler.py
+└── dto/
+    ├── __init__.py
+    └── query_dto.py
+```
+
+## Contenu des Fichiers
+
+### 1. `.env.example`
+
+Ce fichier sert de modèle pour vos variables d'environnement. Créez un fichier `.env` en le copiant et remplissez vos clés API.
+
+```env
+# Clés API OpenAI et Pinecone
+OPENAI_API_KEY="VOTRE_CLE_API_OPENAI"
+PINECONE_API_KEY="VOTRE_CLE_API_PINECONE"
+
+# Configuration de Pinecone
+PINECONE_INDEX_NAME="votre-nom-d-index-rag"
+# Pour Pinecone Serverless (recommandé)
+PINECONE_CLOUD="aws" # ou "gcp", "azure"
+PINECONE_REGION="us-east-1" # votre région de déploiement
+
+# Configuration du modèle d'embedding OpenAI
+EMBEDDING_MODEL="text-embedding-3-small" # ou un autre modèle comme "text-embedding-ada-002"
+EMBEDDING_MODEL_DIMENSION=1536 # Dimension pour text-embedding-3-small et text-embedding-ada-002
+
+# Configuration du modèle de génération OpenAI
+GENERATION_MODEL="gpt-4o-mini" # ou "gpt-3.5-turbo", "gpt-4o"
+```
+
+### 2. `README.md`
+
+```markdown
+# Chatbot RAG avec Pinecone, OpenAI (sans LangChain) pour Replit
+
+Ce projet déploie un chatbot basé sur la Récupération Augmentée de Génération (RAG) utilisant Pinecone comme base de données vectorielle et les API OpenAI pour les embeddings et la génération de texte. Il est conçu pour fonctionner sur Replit et n'utilise pas la bibliothèque LangChain pour le flux RAG principal.
+
+## Configuration
+
+1.  **Cloner le projet** (ou créer les fichiers manuellement sur Replit).
+2.  **Variables d'environnement** :
+    *   Copiez `.env.example` vers un nouveau fichier nommé `.env`.
+    *   Remplissez vos clés API OpenAI et Pinecone, ainsi que les configurations de l'index Pinecone dans le fichier `.env`.
+    *   Sur Replit, vous pouvez utiliser l'onglet "Secrets" pour définir ces variables d'environnement.
+3.  **Installer les dépendances** :
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+## Ingestion des Données
+
+Avant de pouvoir utiliser le chatbot, vous devez ingérer vos données dans Pinecone.
+
+1.  Placez votre document source dans `data/knowledge_base.txt` (ou modifiez le chemin dans `ingest_data.py`).
+2.  Exécutez le script d'ingestion :
+    ```bash
+    python ingest_data.py
+    ```
+    Ce script va :
+    *   Lire le document.
+    *   Le diviser en morceaux (chunks).
+    *   Générer des embeddings pour chaque morceau en utilisant OpenAI.
+    *   Stocker ces embeddings dans votre index Pinecone.
+
+## Lancer l'API du Chatbot
+
+Une fois les données ingérées, vous pouvez démarrer l'API FastAPI :
+
+```bash
+python main.py
+```
+
+L'API sera accessible, généralement sur `http://localhost:8000` (Replit fournira une URL publique).
+
+## Utilisation de l'API
+
+Vous pouvez interroger le chatbot via le point de terminaison `/chat` avec une requête POST JSON.
+
+**Exemple avec `curl`** :
+
+```bash
+curl -X POST "http://localhost:8000/chat" \
+-H "Content-Type: application/json" \
+-d '{
+  "question": "Quelle est la fonctionnalité principale de WonderVector5000?"
+}'
+```
+
+**Réponse attendue** :
+
+```json
+{
+  "answer": "La fonctionnalité principale du WonderVector5000 est son Moteur Quantum Flibberflabber...",
+  "retrieved_context": ["Extrait du document 1...", "Extrait du document 2..."]
+}
+```
+
+## Nettoyage (Optionnel)
+
+Si vous souhaitez supprimer l'index Pinecone après utilisation, vous pouvez ajouter une fonction à `src/pinecone_manager.py` et un script pour le faire, en vous inspirant de la section "Clean up" de la documentation Pinecone [2](https://docs.pinecone.io/guides/get-started/build-a-rag-chatbot "docs.pinecone.io").
+
+```
+
+### 3. `requirements.txt`
+
+```txt
+openai
+pinecone-client
+python-dotenv
+fastapi
+uvicorn[standard]
+pydantic
+tiktoken # Pour un comptage précis des tokens si nécessaire pour le découpage
+```
+
+### 4. `data/knowledge_base.txt`
+
+Placez ici votre texte source. Pour l'exemple, utilisons une version simplifiée du document WonderVector5000 [2](https://docs.pinecone.io/guides/get-started/build-a-rag-chatbot "docs.pinecone.io").
+
+```txt
+## Introduction au WonderVector5000
+
+Bienvenue dans le monde fantaisiste du WonderVector5000, un saut étonnant dans les domaines de la technologie imaginative. Cet appareil extraordinaire, né d'une fantaisie créative, promet de ne révolutionner absolument rien tout en vous éblouissant par ses caractéristiques fantastiques. Que vous soyez un technophile chevronné ou simplement quelqu'un à la recherche d'un peu de plaisir, le WonderVector5000 ne manquera pas de vous amuser et de vous déconcerter à parts égales.
+
+## Aperçu du produit WonderVector5000
+
+Le WonderVector5000 regorge de fonctionnalités qui défient la logique et la physique, chacune conçue pour paraître impressionnante tout en conservant un délicieux air d'absurdité :
+
+- Moteur Quantum Flibberflabber : Le cœur du WonderVector5000, ce moteur fonctionne sur les principes du flibberflabber quantique, un phénomène aussi mystérieux qu'insignifiant. On dit qu'il exploite la puissance de l'improbabilité pour fonctionner de manière transparente à travers de multiples dimensions.
+- Matrice de singularité hyperbolique : Ce composant compresse des possibilités infinies en un état hyperbolique singulier, permettant à l'appareil de prédire les résultats avec une précision de 0 %, garantissant que chaque utilisation est une nouvelle aventure.
+
+## Premiers pas avec le WonderVector5000
+
+Configurer votre WonderVector5000 est à la fois simple et absurdement complexe. Suivez ces étapes pour libérer tout le potentiel de votre nouvel appareil :
+
+1. Déballez l'appareil : Retirez le WonderVector5000 de son emballage anti-gravitationnel, en veillant à le manipuler avec soin pour éviter de perturber l'équilibre délicat de ses composants.
+2. Lancez le moteur Quantum Flibberflabber : Localisez le levier translucide marqué « QFE Start » et tirez-le doucement. Vous devriez remarquer un léger scintillement dans l'air lorsque le moteur s'engage, indiquant que le flibberflabber quantique est en vigueur.
+3. Calibrez la matrice de singularité hyperbolique : Tournez les cadrans étiquetés « Infini A » et « Infini B » jusqu'à ce que la matrice se stabilise. Vous saurez qu'elle est correctement calibrée lorsque l'affichage indique un seul « ∞ » stable.
+
+## Dépannage du WonderVector5000
+
+- Problème : Le moteur Quantum Flibberflabber ne démarre pas.
+  - Solution : Assurez-vous que l'emballage anti-gravitationnel a été complètement retiré. Vérifiez la présence de fragments résiduels d'improbabilité qui pourraient obstruer le moteur.
+- Problème : La matrice de singularité hyperbolique affiche « ∞∞ ».
+  - Solution : Cela indique une boucle hyper-infinie. Réinitialisez les cadrans à zéro, puis ajustez-les lentement jusqu'à ce que l'affichage indique un seul symbole d'infini stable.
+```
+
+### 5. `src/__init__.py`
+
+Fichier vide pour marquer le répertoire `src` comme un package.
+
+### 6. `src/config.py`
+
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+PINECONE_CLOUD = os.getenv("PINECONE_CLOUD", "aws")
+PINECONE_REGION = os.getenv("PINECONE_REGION", "us-east-1")
+
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+EMBEDDING_MODEL_DIMENSION = int(os.getenv("EMBEDDING_MODEL_DIMENSION", 1536))
+GENERATION_MODEL = os.getenv("GENERATION_MODEL", "gpt-4o-mini")
+
+if not OPENAI_API_KEY:
+    raise ValueError("La clé API OpenAI n'est pas définie. Veuillez la définir dans le fichier .env ou les secrets Replit.")
+if not PINECONE_API_KEY:
+    raise ValueError("La clé API Pinecone n'est pas définie. Veuillez la définir dans le fichier .env ou les secrets Replit.")
+if not PINECONE_INDEX_NAME:
+    raise ValueError("Le nom de l'index Pinecone n'est pas défini. Veuillez le définir dans le fichier .env ou les secrets Replit.")
+
+```
+
+### 7. `src/text_utils.py`
+
+Contient des fonctions basiques pour le découpage de texte. Pour des besoins plus avancés, vous pourriez avoir besoin de bibliothèques plus spécialisées ou de code personnalisé si LangChain doit être évité [2, 13].
+
+```python
+import tiktoken
+
+# Un découpeur de texte simple basé sur le nombre de tokens.
+# Pour une meilleure qualité sémantique, des stratégies plus avancées sont nécessaires.
+# LangChain propose des découpeurs sophistiqués ; ceci est une alternative basique.
+
+def get_tokenizer(model_name="text-embedding-3-small"):
+    try:
+        return tiktoken.encoding_for_model(model_name)
+    except KeyError:
+        # Si le modèle n'est pas directement supporté par tiktoken.encoding_for_model
+        # (par ex. certains modèles d'embedding), on peut utiliser un tokenizer générique.
+        # cl100k_base est souvent un bon choix pour les modèles récents d'OpenAI.
+        return tiktoken.get_encoding("cl100k_base")
+
+def split_text_into_chunks(text: str, max_tokens_per_chunk: int = 500, overlap_tokens: int = 50):
+    tokenizer = get_tokenizer()
+    tokens = tokenizer.encode(text)
+    
+    chunks = []
+    current_pos = 0
+    while current_pos < len(tokens):
+        end_pos = min(current_pos + max_tokens_per_chunk, len(tokens))
+        chunk_tokens = tokens[current_pos:end_pos]
+        chunks.append(tokenizer.decode(chunk_tokens))
+        
+        if end_pos == len(tokens):
+            break
+        current_pos += (max_tokens_per_chunk - overlap_tokens)
+        if current_pos >= len(tokens): # Éviter une boucle infinie si overlap est trop grand
+            break
+            
+    return chunks
+
+# Alternative très simple: découpage par paragraphes (doubles sauts de ligne)
+def split_text_by_paragraphs(text: str):
+    paragraphs = text.split('\n\n')
+    return [p.strip() for p in paragraphs if p.strip()] 
+
+```
+
+### 8. `src/openai_handler.py`
+
+```python
+from openai import OpenAI
+from src.config import OPENAI_API_KEY, EMBEDDING_MODEL, GENERATION_MODEL
+
+client = OpenAI(api_key=OPENAI_API_KEY)
+
+def get_embeddings(texts: list[str], model: str = EMBEDDING_MODEL) -> list[list[float]]:
+    if not isinstance(texts, list):
+        texts = [texts]
+    try:
+        response = client.embeddings.create(input=texts, model=model)
+        return [embedding.embedding for embedding in response.data]
+    except Exception as e:
+        print(f"Erreur lors de la génération des embeddings : {e}")
+        raise
+
+def get_chat_completion(query: str, context: list[str], model: str = GENERATION_MODEL) -> str:
+    context_str = "\n\n---\n\n".join(context)
+    
+    system_prompt = f"""Vous êtes un assistant IA serviable. Répondez à la question de l'utilisateur en vous basant UNIQUEMENT sur le contexte fourni ci-dessous. Si le contexte ne contient pas la réponse, dites que vous ne savez pas. Ne faites aucune supposition.
+
+Contexte:
+{context_str}
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": query}
+            ],
+            temperature=0.0 # Pour des réponses plus déterministes
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"Erreur lors de la génération de la réponse du chat : {e}")
+        raise
+
+```
+
+### 9. `src/pinecone_manager.py`
+
+```python
+from pinecone import Pinecone, ServerlessSpec
+import time
+from src.config import (
+    PINECONE_API_KEY, 
+    PINECONE_INDEX_NAME, 
+    PINECONE_CLOUD, 
+    PINECONE_REGION,
+    EMBEDDING_MODEL_DIMENSION
+)
+
+pc = Pinecone(api_key=PINECONE_API_KEY)
+
+def init_pinecone():
+    """Initialise et renvoie l'index Pinecone."""
+    if PINECONE_INDEX_NAME not in pc.list_indexes().names:
+        print(f"Création de l'index Pinecone '{PINECONE_INDEX_NAME}'...")
+        pc.create_index(
+            name=PINECONE_INDEX_NAME,
+            dimension=EMBEDDING_MODEL_DIMENSION,
+            metric="cosine", # Métrique commune pour les embeddings textuels
+            spec=ServerlessSpec(
+                cloud=PINECONE_CLOUD,
+                region=PINECONE_REGION
+            )
+        )
+        # Attendre que l'index soit prêt [2](https://docs.pinecone.io/guides/get-started/build-a-rag-chatbot "docs.pinecone.io")
+        while not pc.describe_index(PINECONE_INDEX_NAME).status['ready']:
+            print("En attente de la disponibilité de l'index...")
+            time.sleep(5)
+        print(f"Index '{PINECONE_INDEX_NAME}' créé et prêt.")
+    else:
+        print(f"L'index '{PINECONE_INDEX_NAME}' existe déjà.")
+    
+    return pc.Index(PINECONE_INDEX_NAME)
+
+def upsert_vectors(index, vectors: list[tuple[str, list[float], dict]]):
+    """Insère ou met à jour des vecteurs dans l'index.
+    Chaque vecteur est un tuple (id, embedding_values, metadata).
+    """
+    try:
+        # Pinecone recommande des upserts par lots pour de meilleures performances [13](https://medium.com/@govindarajpriyanthan/openai-rag-with-pinecone-serverless-dfab08ca3e69 "medium.com")
+        batch_size = 100 
+        for i in range(0, len(vectors), batch_size):
+            batch = vectors[i:i + batch_size]
+            index.upsert(vectors=batch)
+            print(f"Lot de {len(batch)} vecteurs inséré.")
+        print(f"Total de {len(vectors)} vecteurs insérés/mis à jour.")
+        print(f"Statistiques de l'index après upsert : {index.describe_index_stats()}")
+    except Exception as e:
+        print(f"Erreur lors de l'upsert des vecteurs : {e}")
+        raise
+
+def query_vectors(index, vector: list[float], top_k: int = 3) -> list[dict]:
+    """Interroge l'index pour trouver les vecteurs les plus similaires."""
+    try:
+        results = index.query(
+            vector=vector,
+            top_k=top_k,
+            include_metadata=True
+        )
+        return [match['metadata']['text'] for match in results['matches'] if 'metadata' in match and 'text' in match['metadata']]
+    except Exception as e:
+        print(f"Erreur lors de la requête des vecteurs : {e}")
+        raise
+
+def delete_pinecone_index():
+    """Supprime l'index Pinecone."""
+    if PINECONE_INDEX_NAME in pc.list_indexes().names:
+        print(f"Suppression de l'index '{PINECONE_INDEX_NAME}'...")
+        pc.delete_index(PINECONE_INDEX_NAME)
+        print(f"Index '{PINECONE_INDEX_NAME}' supprimé.")
+    else:
+        print(f"L'index '{PINECONE_INDEX_NAME}' n'existe pas.")
+
+```
+
+### 10. `ingest_data.py`
+
+```python
+import uuid
+from src.pinecone_manager import init_pinecone, upsert_vectors
+from src.openai_handler import get_embeddings
+from src.text_utils import split_text_into_chunks # ou split_text_by_paragraphs
+from src.config import PINECONE_INDEX_NAME
+
+DATA_FILE_PATH = "data/knowledge_base.txt"
+
+def main():
+    print(f"Initialisation de Pinecone pour l'index : {PINECONE_INDEX_NAME}")
+    index = init_pinecone()
+
+    print(f"Lecture du fichier de données : {DATA_FILE_PATH}")
+    with open(DATA_FILE_PATH, "r", encoding="utf-8") as f:
+        text_content = f.read()
+
+    print("Découpage du texte en morceaux...")
+    # Utiliser le découpeur basé sur les tokens pour plus de granularité
+    chunks = split_text_into_chunks(text_content, max_tokens_per_chunk=400, overlap_tokens=40)
+    # Ou un découpage plus simple par paragraphe :
+    # chunks = split_text_by_paragraphs(text_content)
+    print(f"{len(chunks)} morceaux créés.")
+
+    if not chunks:
+        print("Aucun morceau de texte à traiter. Vérifiez votre fichier de données et la logique de découpage.")
+        return
+
+    print("Génération des embeddings pour les morceaux...")
+    # On peut traiter les embeddings par lots si nécessaire pour les API OpenAI
+    # mais la fonction get_embeddings gère déjà une liste de textes.
+    embeddings = get_embeddings(chunks)
+    print(f"{len(embeddings)} embeddings générés.")
+
+    if len(chunks) != len(embeddings):
+        print("Erreur : Le nombre de morceaux et d'embeddings ne correspond pas.")
+        return
+
+    vectors_to_upsert = []
+    for i, chunk_text in enumerate(chunks):
+        vector_id = str(uuid.uuid4()) # ID unique pour chaque vecteur [2](https://docs.pinecone.io/guides/get-started/build-a-rag-chatbot "docs.pinecone.io")
+        embedding_vector = embeddings[i]
+        metadata = {"text": chunk_text, "source": DATA_FILE_PATH} # Ajouter des métadonnées utiles
+        vectors_to_upsert.append((vector_id, embedding_vector, metadata))
+    
+    print(f"Préparation de {len(vectors_to_upsert)} vecteurs pour l'upsert.")
+    if vectors_to_upsert:
+        upsert_vectors(index, vectors_to_upsert)
+        print("Ingestion des données terminée.")
+    else:
+        print("Aucun vecteur à insérer.")
+
+if __name__ == "__main__":
+    main()
+
+```
+
+### 11. `dto/__init__.py`
+
+Fichier vide.
+
+### 12. `dto/query_dto.py`
+
+```python
+from pydantic import BaseModel
+from typing import Optional, List
+
+class QueryInput(BaseModel):
+    question: str
+    session_id: Optional[str] = None # Pour une éventuelle gestion de l'historique du chat
+    top_k: Optional[int] = 3
+
+class QueryResponse(BaseModel):
+    answer: str
+    retrieved_context: Optional[List[str]] = None
+    session_id: Optional[str] = None
+
+```
+
+### 13. `routes.py`
+
+```python
+from fastapi import APIRouter, HTTPException
+from dto.query_dto import QueryInput, QueryResponse
+from src.openai_handler import get_embeddings, get_chat_completion
+from src.pinecone_manager import init_pinecone, query_vectors
+from src.config import PINECONE_INDEX_NAME
+
+router = APIRouter()
+
+# Initialiser Pinecone une seule fois au démarrage du routeur (ou de l'application)
+# Cela peut prendre du temps si l'index doit être créé.
+# Pour une application de production, cela pourrait être géré différemment (par ex. lors du déploiement).
+pinecone_index = None
+
+@router.on_event("startup")
+async def startup_event():
+    global pinecone_index
+    print(f"Événement de démarrage du routeur : initialisation de Pinecone pour l'index '{PINECONE_INDEX_NAME}'...")
+    try:
+        pinecone_index = init_pinecone()
+        print("Pinecone initialisé avec succès.")
+    except Exception as e:
+        print(f"Erreur critique lors de l'initialisation de Pinecone : {e}")
+        # L'application pourrait ne pas fonctionner correctement sans Pinecone
+        # Gérer cette erreur de manière appropriée (par ex. empêcher le démarrage ou utiliser un mode dégradé)
+
+@router.post("/chat", response_model=QueryResponse)
+async def chat_endpoint(query_input: QueryInput):
+    global pinecone_index
+    if pinecone_index is None:
+        # Tenter une réinitialisation si l'initialisation au démarrage a échoué
+        print("L'index Pinecone n'est pas initialisé. Tentative de réinitialisation...")
+        try:
+            pinecone_index = init_pinecone()
+            if pinecone_index is None: # Vérifier si l'initialisation a réussi
+                 raise HTTPException(status_code=503, detail="Le service de base de données vectorielle n'est pas disponible actuellement. Veuillez réessayer plus tard.")
+        except Exception as e:
+             raise HTTPException(status_code=503, detail=f"Erreur lors de la connexion à la base de données vectorielle : {e}")
+
+    print(f"Réception de la question : {query_input.question}")
+    
+    try:
+        # 1. Obtenir l'embedding pour la question de l'utilisateur
+        query_embedding = get_embeddings([query_input.question])[0]
+        
+        # 2. Interroger Pinecone pour obtenir le contexte pertinent
+        retrieved_context_texts = query_vectors(pinecone_index, query_embedding, top_k=query_input.top_k)
+        print(f"Contexte récupéré ({len(retrieved_context_texts)} morceaux) : {retrieved_context_texts}")
+
+        if not retrieved_context_texts:
+            # Gérer le cas où aucun contexte n'est trouvé
+            # On pourrait répondre directement sans contexte, ou indiquer qu'aucune info n'est dispo
+            # Pour l'instant, on envoie quand même la question à l'IA, qui devrait dire qu'elle ne sait pas.
+            print("Aucun contexte pertinent trouvé dans Pinecone.")
+            # Vous pouvez choisir de retourner une réponse spécifique ici ou de laisser l'IA gérer
+            # Par exemple: return QueryResponse(answer="Désolé, je n'ai pas trouvé d'informations pertinentes pour répondre à votre question.", retrieved_context=[])
+
+        # 3. Obtenir la réponse du modèle LLM avec le contexte
+        answer = get_chat_completion(query_input.question, retrieved_context_texts)
+        print(f"Réponse de l'IA : {answer}")
+        
+        return QueryResponse(
+            answer=answer, 
+            retrieved_context=retrieved_context_texts, 
+            session_id=query_input.session_id
+        )
+    except Exception as e:
+        print(f"Erreur lors du traitement de la requête de chat : {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+```
+
+### 14. `main.py`
+
+```python
+import uvicorn
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import routes # Importer le module de routes
+from src.config import OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME # Juste pour vérifier au démarrage
+
+app = FastAPI(
+    title="Chatbot RAG API",
+    description="API pour un chatbot RAG utilisant Pinecone et OpenAI (sans LangChain)",
+    version="0.1.0"
+)
+
+# Configuration CORS (Cross-Origin Resource Sharing)
+# Utile si vous avez une interface utilisateur sur un domaine différent
+origins = [
+    "http://localhost",
+    "http://localhost:8080", # Exemple d'origine pour un frontend local
+    # Ajoutez ici les origines de votre frontend Replit si nécessaire
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins, # Permet les requêtes depuis ces origines
+    allow_credentials=True,
+    allow_methods=["*"], # Permet toutes les méthodes (GET, POST, etc.)
+    allow_headers=["*"], # Permet tous les en-têtes
+)
+
+# Inclure les routes définies dans routes.py
+app.include_router(routes.router)
+
+@app.get("/health", summary="Vérification de l'état de santé de l'API")
+async def health_check():
+    return {"status": "ok", "message": "API du chatbot RAG opérationnelle"}
+
+if __name__ == "__main__":
+    print("Vérification des configurations initiales...")
+    if not all([OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME]):
+        print("AVERTISSEMENT : Certaines variables d'environnement critiques ne sont pas définies.")
+        print("Veuillez vérifier votre fichier .env ou les secrets Replit.")
+    else:
+        print("Configurations initiales (clés API, nom d'index) chargées.")
+    
+    print("Lancement du serveur FastAPI...")
+    # Sur Replit, Uvicorn est souvent lancé automatiquement ou via un script `replit.nix` et un `main.sh`
+    # Pour un lancement local ou un contrôle direct sur Replit :
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False) 
+    # `reload=True` est utile pour le développement local, mais peut être `False` en production.
+    # Replit gère souvent le redémarrage automatiquement.
+
+```
+
+N'oubliez pas d'ajuster les chemins et les configurations spécifiques à Replit si nécessaire. La gestion des secrets (clés API) via l'interface "Secrets" de Replit est recommandée plutôt que d'utiliser un fichier `.env` directement dans l'environnement de production Replit.
+
+ --- 
+
+En complément de la solution précédente, voici quelques ajustements basés sur les nouvelles informations et les meilleures pratiques, tout en respectant la contrainte de ne pas utiliser LangChain :
+
+## Améliorations et Corrections
+
+1.  **Mise à jour de la dépendance Pinecone** :
+    La bibliothèque client Pinecone a été renommée. Il est préférable d'utiliser le nouveau nom de package `pinecone` au lieu de `pinecone-client`.
+
+    **Fichier à mettre à jour** : `requirements.txt`
+
+    ```txt
+    openai
+    pinecone
+    python-dotenv
+    fastapi
+    uvicorn[standard]
+    pydantic
+    tiktoken
+    ```
+    *Note : La version précédente de `src/pinecone_manager.py` utilisait déjà la syntaxe du nouveau SDK (`from pinecone import Pinecone`), cette modification dans `requirements.txt` aligne donc la dépendance déclarée avec le code utilisé.*
+
+2.  **Raffinage de l'invite système (System Prompt)** :
+    Pour améliorer la clarté et la directivité des réponses du LLM, l'invite système dans `src/openai_handler.py` peut être légèrement optimisée pour insister sur la concision et la gestion des cas où l'information est absente du contexte [13](https://medium.com/@govindarajpriyanthan/openai-rag-with-pinecone-serverless-dfab08ca3e69 "medium.com").
+
+    **Fichier à mettre à jour** : `src/openai_handler.py`
+    **Fonction à modifier** : `get_chat_completion`
+
+    ```python
+    from openai import OpenAI
+    from src.config import OPENAI_API_KEY, EMBEDDING_MODEL, GENERATION_MODEL
+
+    client = OpenAI(api_key=OPENAI_API_KEY)
+
+    def get_embeddings(texts: list[str], model: str = EMBEDDING_MODEL) -> list[list[float]]:
+        if not isinstance(texts, list):
+            texts = [texts]
+        try:
+            response = client.embeddings.create(input=texts, model=model)
+            return [embedding.embedding for embedding in response.data]
+        except Exception as e:
+            print(f"Erreur lors de la génération des embeddings : {e}")
+            raise
+
+    def get_chat_completion(query: str, context: list[str], model: str = GENERATION_MODEL) -> str:
+        context_str = "\n\n---\n\n".join(context)
+        
+        system_prompt = f"""Vous êtes un assistant IA serviable. Votre tâche est de répondre à la question de l'utilisateur en vous basant UNIQUEMENT sur le contexte fourni ci-dessous.
+    Générez une réponse courte et précise.
+    Si le contexte ne contient pas la réponse, dites explicitement que vous ne savez pas ou que l'information n'est pas disponible dans le contexte. Ne faites aucune supposition et n'inventez pas d'informations.
+
+    Contexte fourni:
+    ---
+    {context_str}
+    ---
+    """
+
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": query}
+                ],
+                temperature=0.0 # Pour des réponses plus déterministes
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Erreur lors de la génération de la réponse du chat : {e}")
+            raise
+    ```
+
+Ces modifications affinent la solution précédemment fournie sans introduire de changements structurels majeurs, car la structure initiale était déjà bien alignée avec les pratiques pour un système RAG sans LangChain, en s'inspirant de concepts trouvés dans des guides comme celui de Pinecone ou des exemples de projets FastAPI [2, 13, 5]. La gestion de l'ingestion des données, la modularité des composants (gestion de Pinecone, gestion d'OpenAI, utilitaires de texte) et la structure de l'API FastAPI restent robustes.
