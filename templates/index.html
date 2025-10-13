@@ -13,7 +13,7 @@
                 </div>
                 <div>
                     <button id="clearChat" class="btn btn-sm btn-outline-secondary">
-                        <i class="fas fa-broom me-1"></i> Clear Chat
+                        <i class="fas fa-broom me-1"></i> Effacer la discussion
                     </button>
                 </div>
             </div>
@@ -21,18 +21,18 @@
         
         <div id="chatContent" class="chat-content">
             <div class="message message-bot">
-                <p>👋 Hello! I'm a RAG (Retrieval Augmented Generation) chatbot. Ask me questions about the documents stored in my knowledge base!</p>
+                <p>👋 Bonjour ! Je suis un chatbot RAG (Retrieval Augmented Generation). Posez-moi des questions sur les documents stockés dans ma base de connaissances !</p>
             </div>
             
             <div class="loading-indicator" id="loadingIndicator">
-                <div class="loader"></div> Thinking...
+                <div class="loader"></div> Réflexion en cours...
             </div>
         </div>
         
         <div class="chat-input-container">
             <form id="chatForm" class="d-flex align-items-center">
                 <input type="text" id="questionInput" class="form-control form-control-lg" 
-                       placeholder="Ask a question..." autocomplete="off" required>
+                       placeholder="Posez une question..." autocomplete="off" required>
                 <button type="submit" class="btn btn-primary ms-2">
                     <i class="fas fa-paper-plane"></i>
                 </button>
@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('Error:', error);
-            addMessage(`Sorry, an error occurred: ${error.message}`, 'bot');
+            addMessage(`Désolé, une erreur s'est produite : ${error.message}`, 'bot');
         } finally {
             // Hide loading indicator
             loadingIndicator.style.display = 'none';
@@ -101,11 +101,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Keep only the initial greeting message
         chatContent.innerHTML = `
             <div class="message message-bot">
-                <p>👋 Hello! I'm a RAG (Retrieval Augmented Generation) chatbot. Ask me questions about the documents stored in my knowledge base!</p>
+                <p>👋 Bonjour ! Je suis un chatbot RAG (Retrieval Augmented Generation). Posez-moi des questions sur les documents stockés dans ma base de connaissances !</p>
             </div>
             
             <div class="loading-indicator" id="loadingIndicator">
-                <div class="loader"></div> Thinking...
+                <div class="loader"></div> Réflexion en cours...
             </div>
         `;
         
@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (sender === 'bot' && context && context.length > 0) {
             const contextToggle = document.createElement('div');
             contextToggle.classList.add('context-toggle');
-            contextToggle.textContent = 'Show sources';
+            contextToggle.textContent = 'Afficher les sources';
             messageDiv.appendChild(contextToggle);
             
             const contextDiv = document.createElement('div');
@@ -146,10 +146,10 @@ document.addEventListener('DOMContentLoaded', function() {
             contextToggle.addEventListener('click', function() {
                 if (contextDiv.style.display === 'none') {
                     contextDiv.style.display = 'block';
-                    contextToggle.textContent = 'Hide sources';
+                    contextToggle.textContent = 'Masquer les sources';
                 } else {
                     contextDiv.style.display = 'none';
-                    contextToggle.textContent = 'Show sources';
+                    contextToggle.textContent = 'Afficher les sources';
                 }
             });
         }
