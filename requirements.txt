@@ -1,0 +1,13 @@
+email-validator
+fastapi
+flask
+flask-sqlalchemy
+gunicorn
+openai
+pinecone
+psycopg2-binary
+python-dotenv
+tiktoken
+tqdm
+uvicorn
+vercel-wsgi
