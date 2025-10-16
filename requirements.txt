@@ -10,4 +10,3 @@ python-dotenv
 tiktoken
 tqdm
 uvicorn
-vercel-wsgi
