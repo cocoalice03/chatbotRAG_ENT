@@ -21,7 +21,7 @@
         
         <div id="chatContent" class="chat-content">
             <div class="message message-bot">
-                <p>👋 Bonjour ! Je suis votre assistant. Posez-moi des questions sur les documents stockés dans ma base de connaissances !</p>
+                <p>J'ai reçu un patient lombalgique hier. Je lui ai fait sa séance, et l'ai renvoyé chez lui avec des exercices. Je ne sais pas si je l'ai bien pris en charge. Qu'aurais-tu fait à ma place ?</p>
             </div>
             
             <div class="loading-indicator" id="loadingIndicator">
@@ -37,6 +37,9 @@
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </form>
+        </div>
+        <div class="chat-disclaimer text-center text-muted mt-2">
+            <small>Ces messages sont créés par un robot. Il peut produire des messages erronés. Attention à toujours vous référer aux publications référencées.</small>
         </div>
     </div>
 </div>
@@ -101,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Keep only the initial greeting message
         chatContent.innerHTML = `
             <div class="message message-bot">
-                <p>👋 Bonjour ! Je suis votre assistant. Posez-moi des questions sur les documents stockés dans ma base de connaissances !</p>
+                <p>J'ai reçu un patient lombalgique hier. Je lui ai fait sa séance, et l'ai renvoyé chez lui avec des exercices. Je ne sais pas si je l'ai bien pris en charge. Qu'aurais-tu fait à ma place ?</p>
             </div>
             
             <div class="loading-indicator" id="loadingIndicator">
